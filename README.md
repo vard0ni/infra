@@ -1,34 +1,32 @@
-# Установка кластера Kubernetes при помощи Ansible playbook
+# Установка кластера Kubernetes при помощи Ansible
 
-Поддерживает:
+Что доступно на текущий момент:
 
 - Kubernetes v1.32.
-- Установку одной или несколько control nodes.
-- HA доступ к API kubernetes.
-- CRI-O.
-- calico.
-- В KubeProxyConfiguration установлены параметры для работы Metallb.
-- nodelocaldns - кеширующий DNS сервер на каждой ноде кластера.
+- Установку 1ой или несколько control nodes.
+- Поддержка high availability
+- Среда выполнения контейнеров containerd/cri-o
+- Прописаны параметры для работы с Metallb.
+- Сетевой плагин calico.
+- Кеширующий DNS сервер на нодах кластера.
 
 
-## Установка ansible
+## Install ansible
 
 ```shell
-python3 -m venv venv
+python -m venv venv
 . ~/venv/bin/activate
-pip3 install "ansible-core<2.17"
-ansible-galaxy collection install community.general
-ansible-galaxy collection install ansible.posix
-ansible-galaxy collection install kubernetes.core
+pip install "ansible-core"
+ansible-galaxy collection install community.general kubernetes.core ansible.posix
 ```
 
-Генерируем ssh ключ:
+Генерация ssh ключа:
 
 ```shell
 ssh-keygen
 ```
 
-Копируем ключики в виртуальные машины из [hosts.yaml](hosts.yml):
+Копируем ключы в виртуальные машины из [hosts.yaml](hosts.yml):
 
  ```shell
 ssh-copy-id root@c1.gapeev.local
@@ -61,11 +59,11 @@ ansible-playbook -b install-cluster.yaml"
 ansible-playbook -b install-cluster.yaml"
 ```
 
-### k8s c HA
+### k8s c high availability
 
-Используются haproxy и keepalived.
+Для работы с high availability используются haproxy и keepalived.
 
-В конфигурационном файле определите параметры доступа к API :
+В конфиге определяем параметры для доступа к API :
 
 - `ha_cluster_virtual_ip` - виртуальный IP адрес.
 - `ha_cluster_virtual_port` - порт. Не должен быть равен 6443.
