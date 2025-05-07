@@ -1,0 +1,7 @@
+---
+# ansible-playbook -b services/03-install-1st-control.yaml
+- name: Install 1-st control node
+  hosts: "k8s_masters[0]"
+
+  roles:
+    - role: master

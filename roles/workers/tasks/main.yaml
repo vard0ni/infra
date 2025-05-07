@@ -1,0 +1,16 @@
+---
+- name: Prepare to Join
+  ansible.builtin.include_tasks: prepare.yaml
+  when: inventory_hostname == groups['k8s_masters'][0]
+  run_once: true
+
+- name: Join worker nodes
+  ansible.builtin.include_tasks: join.yaml
+  when: inventory_hostname in groups['k8s_workers']
+
+- name: Set labels to worker nodes
+  ansible.builtin.command: "kubectl label node {{ item }} node-role.kubernetes.io/worker=worker"
+  when: inventory_hostname == groups['k8s_masters'][0]
+  loop: "{{ groups['k8s_workers'] | flatten(levels=1) }}"
+  register: set_labels
+  changed_when: set_labels.rc != 0

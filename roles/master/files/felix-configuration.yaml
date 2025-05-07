@@ -1,0 +1,12 @@
+# Felix — один из компонентов Calico, который отвечает за управление сетевыми политиками и маршрутизацией на уровне узлов (нод) в Kubernetes
+# Этот конфиг настраивает Felix для работы с BPF, отключает ненужные функции (логирование BPF, плавающие IP, отправку отчетов) и устанавливает базовый уровень логирования
+apiVersion: projectcalico.org/v3
+kind: FelixConfiguration
+metadata:
+  name: default
+spec:
+  bpfLogLevel: ""
+  floatingIPs: Disabled
+  logSeverityScreen: Info
+  reportingInterval: 0s
+  bpfEnabled: true

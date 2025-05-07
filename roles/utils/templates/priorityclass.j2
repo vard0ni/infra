@@ -1,0 +1,10 @@
+{% for pclass in priorityClasses %}
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: {{ pclass.name }}
+value: {{ pclass.value }}
+globalDefault: {{ pclass.globalDefault }}
+description: "{{ pclass.description }}"
+{% endfor %}

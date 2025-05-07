@@ -1,0 +1,49 @@
+---
+- name: Install packages apt
+  ansible.builtin.apt:
+    pkg: "{{ item }}"
+    state: present
+  loop:
+    - net-tools
+    - mc
+    - gpg
+    - iproute2
+    - iptables
+    - vim
+    - git
+    - bash-completion
+    - nfs-common
+    - tar
+    - ntp
+    - jq
+    - ipvsadm
+    - python3-yaml
+
+# Настройка службы NTP (Network Time Protocol) - протокол, который используется для синхронизации времени между серверами и клиентами
+- name: Enable NTP server
+  ansible.builtin.service:
+    name: ntp
+    state: started
+    enabled: true
+
+- name: K8s repository for Ubuntu|Debian [Key]
+  ansible.builtin.apt_key:
+    url: "https://pkgs.k8s.io/core:/stable:/v{{ kube_version | regex_search('[0-9]+.[0-9]+') }}/deb/Release.key"
+    state: present
+    keyring: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+- name: K8s repository for Ubuntu|Debian
+  ansible.builtin.apt_repository:
+    repo: >-
+      deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg]
+      https://pkgs.k8s.io/core:/stable:/v{{ kube_version | regex_search('[0-9]+.[0-9]+') }}/deb/ /
+    state: present
+    filename: kubernetes
+
+- name: Install k8s utils [deb]
+  ansible.builtin.apt:
+    pkg:
+      - kubectl
+      - kubelet
+      - kubeadm
+    state: present

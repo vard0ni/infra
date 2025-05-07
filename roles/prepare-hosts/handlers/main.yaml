@@ -1,0 +1,8 @@
+---
+# Эта команда временно переводит SELinux в режим Permissive (разрешающий). 
+# В этом режиме SELinux продолжает записывать предупреждения о нарушениях политик безопасности, но не блокирует действия, которые нарушают эти политики.
+- name: Selinux setenforce
+  ansible.builtin.command:
+    cmd: setenforce 0
+  register: setenforce_output
+  changed_when: setenforce_output.rc != 0

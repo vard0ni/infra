@@ -1,0 +1,7 @@
+---
+# ansible-playbook -b services/05-install-workers.yaml
+- name: Install worker nodes
+  hosts: "k8s_masters[0],k8s_workers"
+
+  roles:
+    - role: workers

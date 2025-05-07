@@ -1,0 +1,6 @@
+---
+# ansible-playbook -b services/01-prepare-hosts.yaml
+- name: Prepare hosts
+  hosts: k8s
+  roles:
+    - role: prepare-hosts

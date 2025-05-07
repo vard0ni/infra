@@ -1,0 +1,117 @@
+---
+# ansible-playbook -b reset.yaml"
+- name: Reset cluster
+  hosts: "k8s"
+
+  tasks:
+    - name: Reset k8s cluster
+      ansible.builtin.command: kubeadm reset --force
+      ignore_errors: true
+
+    - name: Disable keepalived and haproxy services
+      when:
+        - ha_cluster_virtual_ip is defined
+        - ha_cluster_virtual_ip != ""
+        - inventory_hostname in groups['k8s_masters']
+      ansible.builtin.service:
+        name: "{{ item }}"
+        state: stopped
+        enabled: false
+      with_items:
+        - keepalived
+        - haproxy
+      ignore_errors: true
+
+    - name: Uninstall HA packages apt
+      when:
+        - ha_cluster_virtual_ip is defined
+        - ha_cluster_virtual_ip != ""
+        - inventory_hostname in groups['k8s_masters']
+        - ansible_os_family == "Debian"
+      ansible.builtin.apt:
+        name:
+          - keepalived
+          - haproxy
+        state: absent
+
+    - name: Disabled containerd service
+      when: cri == "containerd"
+      ansible.builtin.service:
+        name: containerd
+        state: stopped
+        enabled: false
+
+    - name: Delete config.toml file
+      when: cri == "containerd"
+      ansible.builtin.file:
+        path: /etc/containerd/config.toml
+        state: absent
+
+    - name: Disabled CRI-O service
+      when: cri == "crio"
+      ansible.builtin.service:
+        name: crio
+        state: stopped
+        enabled: false
+
+    - name: Uninstall Kubernetes packages apt
+      when:
+        - ansible_os_family == "Debian"
+      ansible.builtin.apt:
+        name:
+          - kubectl
+          - kubeadm
+          - kubelet
+        state: absent
+
+    - name: Uninstall containerd apt
+      when:
+        - ansible_os_family == "Debian"
+        - cri == "containerd"
+      ansible.builtin.apt:
+        name:
+          - containerd
+        state: absent
+
+    - name: Uninstall CRI-O apt
+      when:
+        - ansible_os_family == "Debian"
+        - cri == "crio"
+      ansible.builtin.apt:
+        name:
+          - crio
+        state: absent
+
+    - name: Remove etcd data
+      ansible.builtin.file:
+        path: /var/lib/etcd
+        state: absent
+
+    - name: Clear Kubernetes logs
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      with_items:
+        - /var/log/pods
+        - /var/log/containers
+
+    - name: Copy clear fw script
+      ansible.builtin.copy:
+        src: files/clear_fw.sh
+        dest: /root/clear_fw.sh
+        owner: root
+        mode: '0700'
+
+    - name: Clear firewall
+      ansible.builtin.command: bash /root/clear_fw.sh
+      ignore_errors: true
+
+    # - name: Remove clear fw script
+    #   ansible.builtin.file:
+    #     state: absent
+    #     path: /root/clear_fw.sh
+
+    - name: Delete k8s utils manifests
+      ansible.builtin.file:
+        path: /etc/kubernetes/utils
+        state: absent

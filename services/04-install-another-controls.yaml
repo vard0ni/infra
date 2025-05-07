@@ -1,0 +1,7 @@
+---
+# ansible-playbook -b services/04-install-another-controls.yaml
+- name: Install another control nodes
+  hosts: "k8s_masters"
+
+  roles:
+    - role: second_controls

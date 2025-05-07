@@ -1,0 +1,80 @@
+---
+
+- name: Debian
+  when: ansible_facts['os_family'] == "Debian"
+  ansible.builtin.include_tasks: debian-services.yaml
+
+# Проверка наличия активных swap-разделов (подкачки) на машине
+- name: Test swap
+  ansible.builtin.shell:
+    cmd: |
+      swapon --show --noheadings | wc -l
+    executable: /bin/bash
+  register: swap_ret
+  changed_when: swap_ret.rc != 0
+
+- name: If swap is enabled - disable it
+  ansible.builtin.command: swapoff -a
+  when: swap_ret.stdout != "0"
+  register: swapoff_output
+  changed_when: swapoff_output.rc != 0
+
+- name: Disable SWAP in fstab
+  when: swap_ret.stdout != "0"
+  ansible.builtin.replace:
+    path: /etc/fstab
+    regexp: '^([^#].*\s*swap\s*.*)$'
+    replace: '# \1'
+
+- name: Set crictl.yaml
+  ansible.builtin.template:
+    src: crictl.j2
+    dest: /etc/crictl.yaml
+    owner: root
+    mode: u=rw,g=r,o=r
+
+- name: Load modules br_netfilter
+  community.general.modprobe:
+    name: br_netfilter
+
+- name: Load modules overlay
+  community.general.modprobe:
+    name: overlay
+
+- name: Load module permanet
+  ansible.builtin.copy:
+    src: modules-kubernetes.conf
+    dest: /etc/modules-load.d/modules-kubernetes.conf
+    owner: root
+    mode: u=rw,g=r,o=r
+
+- name: Set Sysctl on all nodes
+  ansible.posix.sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    state: present
+  with_items:
+    - name: net.ipv4.ip_forward
+      value: 1
+    - name: net.bridge.bridge-nf-call-iptables
+      value: 1
+    - name: net.bridge.bridge-nf-call-ip6tables
+      value: 1
+    - name: vm.max_map_count # for opensearch & elasticserarch
+      value: 262144
+
+- name: Create ~/.bashrc if needed
+  ansible.builtin.file:
+    path: ~/.bashrc
+    state: touch
+    mode: "0600"
+
+- name: Add PS1
+  ansible.builtin.lineinfile:
+    path: ~/.bashrc
+    state: present
+    line: "PS1='\\[\\e[44;36m\\]\\t:[\\w]\\[\\e[0;0m\\]\\n\\[\\e[0;31;04m\\]\\u\\[\\e[0;0m\\]@\\[\\e[0;32m\\]\\h\\[\\e[0;0m\\] \\$ '"
+
+- name: Install containerd
+  when: cri == "containerd"
+  ansible.builtin.include_tasks: containerd.yaml

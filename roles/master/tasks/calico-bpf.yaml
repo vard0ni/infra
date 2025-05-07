@@ -1,0 +1,40 @@
+- name: Init master control node with eBPF
+  ansible.builtin.command: kubeadm init --config /etc/kubernetes/kubeadm-config.yaml --skip-phases=addon/kube-proxy
+  register: kubeadm_init
+  changed_when: kubeadm_init.rc != 0
+
+- name: Install Utils
+  ansible.builtin.include_tasks: utils.yaml
+
+- name: Copy kubernetes-services-endpoint.yaml
+  ansible.builtin.template:
+    src: kubernetes-services-endpoint.j2
+    dest: /etc/kubernetes/kubernetes-services-endpoint.yaml
+    mode: "0600"
+
+- name: Add ConfigMap kubernetes-services-endpoint
+  ansible.builtin.command: kubectl apply -f /etc/kubernetes/kubernetes-services-endpoint.yaml
+  register: kubectl_apply_kubernetes_services_endpoint
+  changed_when: kubectl_apply_kubernetes_services_endpoint.rc != 0
+
+- name: Copy calico.yaml
+  ansible.builtin.template:
+    src: calico.j2
+    dest: /etc/kubernetes/calico-bpf.yaml
+    mode: "0600"
+
+- name: Install Calico BPF
+  ansible.builtin.command: kubectl apply -f /etc/kubernetes/calico-bpf.yaml
+  register: kubectl_apply_calico_bpf
+  changed_when: kubectl_apply_calico_bpf.rc != 0
+
+- name: Copy FelixConfiguration
+  ansible.builtin.copy:
+    src: felix-configuration.j2
+    dest: /etc/kubernetes/felix-configuration.yaml
+    mode: "0600"
+
+- name: Apply FelixConfiguration
+  ansible.builtin.command: calicoctl apply -f /etc/kubernetes/felix-configuration.yaml
+  register: kubectl_apply_felix_configuration
+  changed_when: kubectl_apply_felix_configuration.rc != 0

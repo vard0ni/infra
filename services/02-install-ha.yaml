@@ -1,0 +1,7 @@
+---
+# ansible-playbook -b services/02-install-ha.yaml
+- name: Install HA on control nodes
+  hosts: "k8s_masters"
+
+  roles:
+    - role: ha

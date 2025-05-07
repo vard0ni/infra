@@ -1,0 +1,41 @@
+## ansible-playbook -b install-cluster.yaml -e "target=debian"
+---
+- name: Checking for an odd number of nodes.
+  hosts: "k8s_masters[0]"
+
+  tasks:
+    - name: Abort if an even number of nodes
+      ansible.builtin.debug:
+        msg: "Abort. Аn even number of nodes% {{ groups['k8s_masters'] | length }}"
+      failed_when: groups['k8s_masters'] | length | int is divisibleby 2
+
+- name: Prepare hosts for installation k8s
+  hosts: "k8s"
+
+  roles:
+    - prepare-hosts
+
+- name: Install HA on control nodes
+  hosts: "k8s_masters"
+
+  roles:
+    - role: ha
+      when: ha_cluster_virtual_ip is defined and ha_cluster_virtual_ip != ""
+
+- name: Install 1-st control node
+  hosts: "k8s_masters[0]"
+
+  roles:
+    - role: master
+
+- name: Install another control nodes
+  hosts: "k8s_masters"
+
+  roles:
+    - role: second_controls
+
+- name: Install worker nodes
+  hosts: "k8s_masters[0],k8s_workers"
+
+  roles:
+    - workers

@@ -1,0 +1,10 @@
+---
+# ansible-playbook -b services/poweroff.yaml
+- name: Poweroff k8s_cluster
+  gather_facts: false
+  hosts: "k8s"
+
+  tasks:
+    - name: Poweroff
+      ansible.builtin.command: poweroff
+      changed_when: true

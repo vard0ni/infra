@@ -1,0 +1,31 @@
+# Nodelocaldns
+# TODO: Может быть сделать через kubectl wait -n kube-system pod xxxx --for=condition=Ready ?
+- name: Wait for coredns started
+  ansible.builtin.command: "kubectl -n kube-system get svc kube-dns -o jsonpath='{.spec.clusterIP}'"
+  changed_when: false
+  check_mode: false
+  register: result
+  until: result.rc == 0
+  retries: 10
+  delay: 30
+
+- name: Get coredns service IP address
+  ansible.builtin.command: kubectl -n kube-system get svc kube-dns -o jsonpath='{.spec.clusterIP}'
+  register: dns_ip
+  changed_when: dns_ip.rc != 0
+
+- name: Set coredns_ip variable
+  ansible.builtin.set_fact:
+    coredns_ip: "{{ dns_ip.stdout }}"
+
+# NodeLocal DNS улучшает производительность DNS-запросов в кластере, минимизируя задержки и нагрузку на CoreDNS
+- name: Copy nodelocaldns manifest
+  ansible.builtin.template:
+    src: nodelocaldns-daemonset.j2
+    dest: /etc/kubernetes/nodelocaldns-daemonset.yaml
+    mode: "0600"
+
+- name: Deploy nodelocaldns
+  ansible.builtin.command: kubectl apply -f /etc/kubernetes/nodelocaldns-daemonset.yaml
+  register: kubectl_apply_nodelocaldns_daemonset
+  changed_when: kubectl_apply_nodelocaldns_daemonset.rc != 0
