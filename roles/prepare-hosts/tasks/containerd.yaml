@@ -1,5 +1,5 @@
 ---
-- name: Install containerd in Debian
+- name: Install containerd in Ubuntu
   when: ansible_facts['os_family'] == "Debian"
   block:
     - name: Docker repository for Debian [Key]
@@ -8,7 +8,7 @@
         state: present
         keyring: /etc/apt/trusted.gpg.d/docker.gpg
 
-    - name: Docker repository for Debian
+    - name: Docker repository for Ubuntu
       ansible.builtin.apt_repository:
         repo: >
           deb [signed-by=/etc/apt/trusted.gpg.d/docker.gpg]
@@ -17,7 +17,7 @@
         state: present
         filename: docker-ce-stable
 
-    - name: Install containerd [deb]
+    - name: Install containerd
       ansible.builtin.apt:
         name:
           - containerd

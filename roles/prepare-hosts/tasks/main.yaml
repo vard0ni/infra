@@ -1,6 +1,6 @@
 ---
 
-- name: Debian
+- name: Ubuntu
   when: ansible_facts['os_family'] == "Debian"
   ansible.builtin.include_tasks: debian-services.yaml
 
@@ -13,7 +13,7 @@
   register: swap_ret
   changed_when: swap_ret.rc != 0
 
-- name: If swap is enabled - disable it
+- name: Disable SWAP using swapoff
   ansible.builtin.command: swapoff -a
   when: swap_ret.stdout != "0"
   register: swapoff_output
@@ -33,11 +33,11 @@
     owner: root
     mode: u=rw,g=r,o=r
 
-- name: Load modules br_netfilter
+- name: Load module br_netfilter for k8s
   community.general.modprobe:
     name: br_netfilter
 
-- name: Load modules overlay
+- name: Load module overlay for k8s
   community.general.modprobe:
     name: overlay
 
@@ -63,18 +63,25 @@
     - name: vm.max_map_count # for opensearch & elasticserarch
       value: 262144
 
+# Задача создаёт файл ~/.bashrc, если он отсутствует, и устанавливает для него определённые права доступа
 - name: Create ~/.bashrc if needed
   ansible.builtin.file:
     path: ~/.bashrc
     state: touch
     mode: "0600"
 
-- name: Add PS1
+# После выполнения этой задачи, командная строка в терминале будет выглядеть примерно так:
+# 14:23:45:[/root]
+# root@c1node $
+# Первая строка показывает текущее время и рабочую директорию.
+# Вторая строка показывает имя пользователя, имя хоста и символ приглашения ($).
+- name: Change PS1 in ~/.bashrc file
   ansible.builtin.lineinfile:
     path: ~/.bashrc
     state: present
     line: "PS1='\\[\\e[44;36m\\]\\t:[\\w]\\[\\e[0;0m\\]\\n\\[\\e[0;31;04m\\]\\u\\[\\e[0;0m\\]@\\[\\e[0;32m\\]\\h\\[\\e[0;0m\\] \\$ '"
 
+# Установка containerd - исполняемая среда для запуска контейнеров
 - name: Install containerd
   when: cri == "containerd"
   ansible.builtin.include_tasks: containerd.yaml
