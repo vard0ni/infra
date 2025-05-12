@@ -1,3 +1,4 @@
+# Для нормальной работы необходимо установить кеширующий DNS сервер
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -27,6 +28,7 @@ data:
         prometheus :9253
         health {{ nodelocaldns_local_ip }}:9254
     }
+    # зона обратного преобразования
     in-addr.arpa:53 {
         errors
         cache 30
@@ -38,6 +40,7 @@ data:
         }
         prometheus :9253
     }
+    # зона обратного преобразования ipv6
     ip6.arpa:53 {
         errors
         cache 30
@@ -49,18 +52,22 @@ data:
         }
         prometheus :9253
     }
+    # все остальные зоны, которые идут в интернет и не касаются k8s
     .:53 {
         errors
         cache 30
         reload
         loop
+        # слушаем запросы на ip адресе
         bind {{ nodelocaldns_local_ip }}
+        # а на самом деле пересылаем на те dns сервера, которые описаны в файле resolv.conf, то есть на master.gapeev.local
         forward . /etc/resolv.conf  {
           prefer_udp
         }
         prometheus :9253
     }
 ---
+# Используем DaemonSet, так как нам нужен nodelocaldns на каждой ноде кластера
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -82,6 +89,7 @@ spec:
     spec:
       priorityClassName: system-cluster-critical
       serviceAccountName: nodelocaldns
+      # данный под будет устанавливаться на сетевые интерфейсы linux машины
       hostNetwork: true
       dnsPolicy: Default  # Don't use cluster DNS.
       tolerations:
