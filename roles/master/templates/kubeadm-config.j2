@@ -1,41 +1,69 @@
+# Первоначальная конфигурация
 apiVersion: kubeadm.k8s.io/v1beta3
 kind: InitConfiguration
+# определяем IP и порт ноды, на которой будем слушать запросы kubernetes API сервер
+# Надо указывать IP машины, а не кластерный IP адрес, используемый в HA конфигурации.
+# Если эти параметры не указывать, kubeadm попытается автоматически определить значения.
 localAPIEndpoint:
   advertiseAddress: 192.168.118.131
   bindPort: 6443
+# Параметр, который содержит поля относящиеся к регистрации новой control ноды кластера
 nodeRegistration:
+  # сокет через который бдуем работать с системой контейнеризации.
   criSocket: {{ cri_socket }}
   imagePullPolicy: IfNotPresent
   name: c1.gapeev.local
+  kubeletExtraArgs:
+    node-ip: {{ ansible_host }}
 ---
+# Конфигурация кластера
 apiVersion: kubeadm.k8s.io/v1beta3
 kind: ClusterConfiguration
+# Где будут храниться сертификаты кластера
 certificatesDir: /etc/kubernetes/pki
+# Имя кластера
 clusterName: {{ kube_domain_name }}
+# Репозиторий из которого будут скачиваться образы контейнеров
 imageRepository: {{ imageRepository }}
+# Версия кластера kubernetes
 kubernetesVersion: {{ kube_version }}
+# IP адрес или DNS имя + порт
 {% if ha_cluster_virtual_ip is defined and ha_cluster_virtual_ip != "" %}
+# куда будут обращаться все остальные kubeadm, когда будем добавлять ноды
 controlPlaneEndpoint: {{ ha_cluster_virtual_ip }}:{{ ha_cluster_virtual_port }}
 {% else %}
-controlPlaneEndpoint: 192.168.118.130:6443
+controlPlaneEndpoint: 192.168.118.131:6443
 {% endif %}
+# Конфигурация сети кластера
 networking:
+  # имя DNS домена кластера. По умолчанию cluster.local
   dnsDomain: {{ kube_domain_name }}
+  # сеть для подов кластера
   podSubnet: {{ pod_network_cidr }}
+  # сеть для сервисов кластера. kind: Service
   serviceSubnet: {{ service_cidr }}
 ---
+ # Kube proxy для metallb
 apiVersion: kubeproxy.config.k8s.io/v1alpha1
 kind: KubeProxyConfiguration
+# сеть, используемая для подов кластера
 clusterCIDR: {{ pod_network_cidr }}
+# Параметры конфигурации режима ipvs
 ipvs:
+  # настраивает параметры arp_ignore и arp_announce, чтобы избежать ответов на запросы ARP из интерфейса kube-ipvs0
   strictARP: true
+# Определяет механизм для прокси (реализация сервисов). ipvs на больших кластерах - самый быстрый и масштабируемый режим
 mode: ipvs
 ---
+# Первоначальная конфигурация kubelet
 apiVersion: kubelet.config.k8s.io/v1beta1
 kind: KubeletConfiguration
+# определяем IP адреса DNS серверов кластера
 clusterDNS:
+# Для уменьшения сетевого трафика используем nodelocaldns (кеширующие DNS сервера на каждой ноде кластера)
 - {{ nodelocaldns_local_ip }}
 {% if system_reserved is defined and system_reserved %}
+# Резервирую ресурсы для приложений работающих не под управлением kubernetes
 systemReserved:
 {% if system_memory_reserved is defined %}
   memory: {{ system_memory_reserved }}
@@ -48,8 +76,10 @@ systemReserved:
 {% endif %}
 {% endif %}
 {% if container_log_max_size is defined %}
+# Определяем максимальный размер файла журнала контейнера до его ротации
 containerLogMaxSize: {{ container_log_max_size }}
 {% endif %}
 {% if container_log_max_size is defined %}
+# Максимальный размер журнального файла контейнера
 containerLogMaxFiles: {{ container_log_max_files }}
 {% endif %}
