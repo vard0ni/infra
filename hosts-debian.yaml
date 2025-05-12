@@ -3,10 +3,10 @@ servers:
     # Debian
     c1.gapeev.local:
       ansible_host: 192.168.118.131
-    c2.gapeev.local:
-      ansible_host: 192.168.118.132
-    c3.gapeev.local:
-      ansible_host: 192.168.118.133
+    # c2.gapeev.local:
+    #   ansible_host: 192.168.118.132
+    # c3.gapeev.local:
+    #   ansible_host: 192.168.118.133
     w1.gapeev.local:
       ansible_host: 192.168.118.134
     w2.gapeev.local:
@@ -20,10 +20,15 @@ k8s:
 k8s_masters:
   hosts:
     c1.gapeev.local:
-    c2.gapeev.local:
-    c3.gapeev.local:
+      ansible_host: 192.168.118.131
+    # c2.gapeev.local:
+    #   ansible_host: 192.168.118.132
+    # c3.gapeev.local:
+    #   ansible_host: 192.168.118.133
 k8s_workers:
   hosts:      
     w1.gapeev.local:
+      ansible_host: 192.168.118.134
     w2.gapeev.local:
+      ansible_host: 192.168.118.135
 
