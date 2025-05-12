@@ -1,4 +1,5 @@
 ---
+# Создается ClusterRole, который предоставляет права доступа к метрикам через API группы metrics.k8s.io
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -7,17 +8,21 @@ metadata:
     rbac.authorization.k8s.io/aggregate-to-view: "true"
     rbac.authorization.k8s.io/aggregate-to-edit: "true"
     rbac.authorization.k8s.io/aggregate-to-admin: "true"
+# Разрешение на чтение (get, list, watch) метрик для ресурсов pods и nodes
 rules:
 - apiGroups: ["metrics.k8s.io"]
   resources: ["pods", "nodes"]
   verbs: ["get", "list", "watch"]
 ---
+# Этот ServiceAccount будет использоваться для управления правами доступа Metrics Server к API Kubernetes
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: metrics-server
   namespace: kube-system
 ---
+# Привязывает роль extension-apiserver-authentication-reader к ServiceAccount metrics-server.
+# Эта роль позволяет Metrics Server читать конфигурацию аутентификации API-сервера (например, CA-сертификаты).
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
@@ -32,6 +37,8 @@ subjects:
     name: metrics-server
     namespace: kube-system
 ---
+# Привязывает ClusterRole system:auth-delegator к ServiceAccount metrics-server
+# Эта роль позволяет Metrics Server делегировать аутентификацию и авторизацию запросов к API-серверу.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
@@ -45,6 +52,8 @@ subjects:
     name: metrics-server
     namespace: kube-system
 ---
+# Создается ClusterRole, который предоставляет права доступа Metrics Server к ресурсам Kubernetes:
+# Чтение метрик с узлов (nodes/metrics); Чтение информации о подах и узлах (pods, nodes).
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -64,6 +73,8 @@ rules:
       - list
       - watch
 ---
+# Привязывает ClusterRole system:metrics-server к ServiceAccount metrics-server
+# Это позволяет Metrics Server выполнять действия, разрешенные в ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
@@ -77,6 +88,8 @@ subjects:
     name: metrics-server
     namespace: kube-system
 ---
+# Создается Service , который предоставляет доступ к Metrics Server.
+# Трафик направляется на порт https (443) подов, помеченных меткой k8s-app=metrics-server
 apiVersion: v1
 kind: Service
 metadata:
@@ -93,6 +106,7 @@ spec:
   selector:
     k8s-app: metrics-server
 ---
+# Deployment для запуска Metrics Server
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -101,6 +115,7 @@ metadata:
 spec:
   strategy:
     rollingUpdate:
+      # чтобы избежать простоя
       maxUnavailable: 0
   selector:
     matchLabels:
@@ -121,11 +136,17 @@ spec:
         image: "{{ metricsServerImage }}"
         imagePullPolicy: IfNotPresent
         args:
+          # Указывает директорию для хранения сертификатов
           - --cert-dir=/tmp
+          # Порт для безопасного соединения
           - --secure-port=10250
+          # Предпочтительные типы адресов для связи с kubelet
           - --kubelet-preferred-address-types=InternalIP,ExternalIP,Hostname
+          # Использовать порт, указанный в статусе узла
           - --kubelet-use-node-status-port
+          # Интервал сбора метрик
           - --metric-resolution=15s
+          # Отключение проверки TLS для kubelet.
           - --kubelet-insecure-tls
         resources:
           requests:
@@ -137,6 +158,7 @@ spec:
           protocol: TCP
         readinessProbe:
           httpGet:
+            # Проверяет готовность сервера через /readyz
             path: /readyz
             port: https
             scheme: HTTPS
@@ -145,15 +167,19 @@ spec:
           initialDelaySeconds: 20
         livenessProbe:
           httpGet:
+            # Проверяет работоспособность через /livez
             path: /livez
             port: https
             scheme: HTTPS
           periodSeconds: 10
           failureThreshold: 3
         securityContext:
+          # Только чтение файловой системы
           readOnlyRootFilesystem: true
+          # Запуск от имени непривилегированного пользователя
           runAsNonRoot: true
           runAsUser: 1000
+          # Отключение привилегий и ограничение возможностей контейнера
           allowPrivilegeEscalation: false
           seccompProfile:
             type: RuntimeDefault
@@ -164,8 +190,11 @@ spec:
         - name: tmp-dir
           mountPath: /tmp
       nodeSelector:
+        # Запуск только на Linux-узлах
         kubernetes.io/os: linux
 ---
+# Регистрирует Metrics Server как API-сервис в Kubernetes
+# API группы metrics.k8s.io становится доступным через сервис metrics-server в пространстве имен kube-system
 apiVersion: apiregistration.k8s.io/v1
 kind: APIService
 metadata:
@@ -177,5 +206,6 @@ spec:
   group: metrics.k8s.io
   version: v1beta1
   insecureSkipTLSVerify: true
+  # Приоритеты (groupPriorityMinimum, versionPriority) определяют, как этот API будет взаимодействовать с другими API.
   groupPriorityMinimum: 100
   versionPriority: 100

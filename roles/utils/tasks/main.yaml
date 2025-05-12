@@ -17,13 +17,14 @@
         mode: '0600'
       register: priority_class
 
-    - name: Apply priority classes manifest # noqa: no-handler
+    - name: Apply priority classes manifest
       ansible.builtin.command: kubectl apply -f /etc/kubernetes/utils/priorityclass.yaml
       when: priority_class.changed
       register: kubectl_apply_pc
       changed_when: kubectl_apply_pc.rc != 0
 
 ### Metrics server
+# Этот манифест Kubernetes настраивает Metrics Server , который собирает метрики (например, использование CPU и памяти) с узлов (nodes) и подов (pods) в кластере
 - name: Copy metrics server manifest
   ansible.builtin.template:
     src: metrics-server.j2
@@ -32,7 +33,7 @@
   when: metricsServerEnable
   register: metrics_server
 
-- name: Apply metrics server manifest # noqa: no-handler
+- name: Apply metrics server manifest
   ansible.builtin.command: kubectl apply -f /etc/kubernetes/utils/metrics-server.yaml
   when: metrics_server.changed
   register: kubectl_apply_mserver
@@ -47,7 +48,7 @@
   when: nfsEnable
   register: nfs
 
-- name: Apply nfs provisioner manifest # noqa: no-handler
+- name: Apply nfs provisioner manifest
   ansible.builtin.command: kubectl apply -f /etc/kubernetes/utils/nfs-provisioner.yaml
   when: nfs.changed
   register: kubectl_apply_nfs
@@ -93,7 +94,7 @@
         mode: '0600'
       register: mlb_pool
 
-    - name: Apply metallb pool manifest # noqa: no-handler
+    - name: Apply metallb pool manifest
       ansible.builtin.command: kubectl -n metallb apply -f /etc/kubernetes/utils/mlb.yaml
       when: mlb_pool.changed
       register: kubectl_apply_mlb
@@ -103,18 +104,6 @@
 - name: Install cert-manager
   when: certManagerEnable
   block:
-    # - name: Add a cert-manager manifest
-    #   ansible.builtin.get_url:
-    #     url: https://github.com/cert-manager/cert-manager/releases/download/{{ certManagerVersion }}/cert-manager.yaml
-    #     dest: /etc/kubernetes/utils/cert-manager.yaml
-    #     mode: '0600'
-    #   register: cert_manager
-
-    # - name: Apply manifest cert-manager # noqa: no-handler
-    #   when: cert_manager.changed
-    #   ansible.builtin.command: kubectl apply -f /etc/kubernetes/utils/cert-manager.yaml
-    #   register: kubectl_apply_certm
-    #   changed_when: kubectl_apply_certm.rc != 0
     - name: Add a cert-manager repository
       kubernetes.core.helm_repository:
         name: jetstack
@@ -132,14 +121,6 @@
             enabled: true
             keep: false
 
-    # - name: Wait for cert-manager start # noqa: no-handler
-    #   ansible.builtin.command:
-    #     cmd: >
-    #       kubectl wait -n cert-manager --for=condition=Ready pods
-    #       --selector "app.kubernetes.io/instance=cert-manager"
-    #   register: kubectl_wait_certm
-    #   changed_when: kubectl_wait_certm.rc != 0
-
     - name: Add Issuer manifests
       ansible.builtin.copy:
         src: certs.yaml
@@ -147,7 +128,7 @@
         mode: '0600'
       register: issuer
 
-    - name: Apply Issuer manifests # noqa: no-handler
+    - name: Apply Issuer manifests
       ansible.builtin.command: kubectl apply -f /etc/kubernetes/utils/certs.yaml
       when: issuer.changed
       retries: 10
@@ -172,7 +153,7 @@
         mode: '0600'
       register: ingress_controller_values
 
-    - name: Install ingress-nginx helm chart # noqa: no-handler
+    - name: Install ingress-nginx helm chart 
       when: ingress_controller_values.changed
       kubernetes.core.helm:
         name: ingress-nginx
@@ -183,29 +164,29 @@
         values_files:
           - /etc/kubernetes/utils/ingress-controller-values.yaml
 
-# ## ArgoCD
-# - name: ArgoCD
-#   when: argoCDEnable
-#   block:
-#     - name: Add an ArgoCD repository
-#       kubernetes.core.helm_repository:
-#         name: argocd
-#         repo_url: https://argoproj.github.io/argo-helm
+## ArgoCD
+- name: ArgoCD
+  when: argoCDEnable
+  block:
+    - name: Add an ArgoCD repository
+      kubernetes.core.helm_repository:
+        name: argocd
+        repo_url: https://argoproj.github.io/argo-helm
 
-#     - name: Copy ArgoCD values file
-#       ansible.builtin.template:
-#         src: argo-values.j2
-#         dest: /etc/kubernetes/utils/argo-values.yaml
-#         mode: '0600'
-#       register: argo_values
+    - name: Copy ArgoCD values file
+      ansible.builtin.template:
+        src: argo-values.j2
+        dest: /etc/kubernetes/utils/argo-values.yaml
+        mode: '0600'
+      register: argo_values
 
-#     - name: Install argo helm chart
-#       when: argo_values.changed
-#       kubernetes.core.helm:
-#         name: argocd
-#         chart_ref: argocd/argo-cd
-#         chart_version: "{{ argoCDChartVersion }}"
-#         release_namespace: argocd
-#         create_namespace: true
-#         values_files:
-#           - /etc/kubernetes/utils/argo-values.yaml
+    - name: Install argo helm chart
+      when: argo_values.changed
+      kubernetes.core.helm:
+        name: argocd
+        chart_ref: argocd/argo-cd
+        chart_version: "{{ argoCDChartVersion }}"
+        release_namespace: argocd
+        create_namespace: true
+        values_files:
+          - /etc/kubernetes/utils/argo-values.yaml
