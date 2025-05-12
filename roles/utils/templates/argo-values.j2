@@ -16,21 +16,17 @@ configs:
     controller.diff.server.side: "{{ argoCDEnableServerSideDiff }}"
     ignoreAggregatedRoles: {{ argoCDIgnoreAggregateRoles}}
     url: https://{{ argoCDURL }}
+    accounts.vard0ni: apiKey, login
+    accounts.vard0ni.enabled: "true" 
 
   params:
     server.insecure: true
 
   repositories:
-    artur-repo:
-      url: https://github.com/BigKAA/youtube
-      name: bigkaa
+    gapeev-repo:
+      url: https://github.com/vard0ni/infra
+      name: vard0ni
       type: git
-
-  secret:
-    # -- Bcrypt hashed admin password
-    ## Argo expects the password in the secret to be bcrypt hashed. You can create this hash with
-    ## `htpasswd -nbBC 10 "" $ARGO_PWD | tr -d ':\n' | sed 's/$2y/$2a/'`
-    argocdServerAdminPassword: "{{ argoCDAdminPassword }}"
 
 ## Redis
 redis:
