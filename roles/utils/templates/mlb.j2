@@ -1,4 +1,8 @@
+# MetalLB поддерживает два режима работы 
+# L2 Mode - использует протокол ARP (Address Resolution Protocol IPv4) для объявления IP-адресов в локальной сети.
+# BGP Mode - использует протокол BGP (Border Gateway Protocol) для маршрутизации трафика через маршрутизаторы. Этот режим более сложный и требует настройки BGP-маршрутизаторов.
 ---
+# Определяем диапазон IP-адресов, которые MetalLB может использовать для назначения LoadBalancer-сервисам.
 apiVersion: metallb.io/v1beta1
 kind: IPAddressPool
 metadata:
@@ -10,6 +14,7 @@ spec:
   {% endfor %}
 
 ---
+# Объявляет выбранный пул адресов (first-pool) в сети уровня 2 (L2). Это позволяет MetalLB "раздавать" IP-адреса из пула на уровне сети.
 apiVersion: metallb.io/v1beta1
 kind: L2Advertisement
 metadata:
@@ -17,3 +22,5 @@ metadata:
 spec:
   ipAddressPools:
   - first-pool
+  interfaces:
+  - enp0s8
