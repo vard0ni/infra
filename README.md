@@ -61,7 +61,9 @@ ansible-playbook -b install-cluster.yaml"
 
 ### k8s c high availability
 
-Для работы с high availability используются haproxy и keepalived.
+Для работы с high availability в проекте с несколькими 3+ control нодами используются haproxy и keepalived.
+
+Кол-во control нод должно быть нечётным, иначе будут возникать коллизии, так как на этих нодах будут распологаться базы данных etcd, а их должно нечётное кол-во.
 
 В конфиге определяем параметры для доступа к API :
 
