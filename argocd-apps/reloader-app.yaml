@@ -10,7 +10,7 @@ spec:
   source:
     repoURL: 'https://github.com/vard0ni/infra'
     path: manifests/reloader
-    targetRevision: master
+    targetRevision: main
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: kube-system
