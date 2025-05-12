@@ -14,3 +14,27 @@
   loop: "{{ groups['k8s_workers'] | flatten(levels=1) }}"
   register: set_labels
   changed_when: set_labels.rc != 0
+
+
+- name: Ensure /etc/default/kubelet file exists
+  ansible.builtin.file:
+    path: /etc/default/kubelet
+    state: touch
+    mode: '0644'
+
+- name: Add --node-ip argument to KUBELET_EXTRA_ARGS in /etc/default/kubelet
+  ansible.builtin.lineinfile:
+    path: /etc/default/kubelet
+    regexp: '^KUBELET_EXTRA_ARGS='
+    line: "KUBELET_EXTRA_ARGS='--node-ip={{ ansible_host }}'"
+    create: yes
+
+- name: Reload systemd to apply changes
+  ansible.builtin.command:
+    cmd: systemctl daemon-reload
+
+- name: Restart kubelet service
+  ansible.builtin.systemd:
+    name: kubelet
+    state: restarted
+    enabled: yes

@@ -14,9 +14,6 @@
   register: kubeadm_join
   changed_when: kubeadm_join.rc != 0
 
-#  --discovery-token-unsafe-skip-ca-verification
-
-# Почему то в 1.25 на AlmaLinux 8 не ставится enabled
 - name: Kubelet enable
   ansible.builtin.service:
     name: kubelet
