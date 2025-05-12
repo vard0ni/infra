@@ -1,5 +1,5 @@
 ---
-- name: Prepare to Join
+- name: Prepare to join control nodes
   ansible.builtin.include_tasks: prepare.yaml
   when: inventory_hostname == groups['k8s_masters'][0]
 
@@ -7,6 +7,8 @@
   ansible.builtin.include_tasks: join.yaml
   when: inventory_hostname != groups['k8s_masters'][0]
 
+# Может быть проблема, что два пода CoreDNS могут весеть на одной ноде
+# поэтому добавляем таск, чтобы они разъехались по разным control нодам
 - name: Shake coredns
   ansible.builtin.command: kubectl -n kube-system rollout restart deployment/coredns
   when: inventory_hostname == groups['k8s_masters'][0]

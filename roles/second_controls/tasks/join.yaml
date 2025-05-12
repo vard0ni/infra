@@ -4,6 +4,7 @@
     path: "/etc/kubernetes/pki/ca.key"
   register: kubeadm_ca
 
+# Подставляем переменные полученные в файле prepare.yaml
 - name: Join control nodes
   when: not kubeadm_ca.stat.exists
   ansible.builtin.command:
@@ -12,6 +13,7 @@
       --token {{ hostvars[groups['k8s_masters'][0]].join_token.stdout }}
       --discovery-token-ca-cert-hash sha256:{{ hostvars[groups['k8s_masters'][0]].discovery_token_ca_cert_hash.stdout }}
       --control-plane --certificate-key {{ hostvars[groups['k8s_masters'][0]].certificate_key.stdout }}
+      --apiserver-advertise-address {{ ansible_host }}
   register: kubeadm_join
   changed_when: kubeadm_join.rc != 0
 
@@ -29,7 +31,6 @@
     dest: /root/.kube/config
     state: link
 
-# Почему то в 1.25 на AlmaLinux 8 не ставится enabled
 - name: Kubelet enable
   ansible.builtin.service:
     name: kubelet
