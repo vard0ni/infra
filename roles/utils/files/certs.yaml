@@ -41,7 +41,7 @@ spec:
     kind: Issuer
     group: cert-manager.io
 ---
-# Создание глобального издателя сертификатов, работает на уровне всего кластера, а не только в одном namespace
+# Создание глобального подписывальщика сертификатов, работает на уровне всего кластера, а не только в одном namespace
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:

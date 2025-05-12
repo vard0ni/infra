@@ -29,6 +29,7 @@ controller:
     enabled: true
     type: {{ ingressControllerServiceType }}
 
+  # чтобы не проверять ингрессы, вдруг добавлю ещё один ingress и будут их несколько
   admissionWebhooks:
     enabled: false
 

@@ -42,15 +42,13 @@
       when: enableBPF is defined
       ansible.builtin.include_tasks: calico-bpf.yaml
 
+    # calicoctl — утилита командной строки для управления Calico. Необходима для настройки сети и политики безопасности в K8s
+    # + диагностика/мониторинг
     - name: Install Calicoctl
       ansible.builtin.get_url:
         url: "{{ calicoctl_url }}{{ tigera_operator_version }}/calicoctl-linux-amd64"
         dest: /usr/local/bin/calicoctl
         mode: '0755'
-
-- name: Flannel
-  when: cni == 'flannel'
-  ansible.builtin.include_tasks: flannel.yaml
 
 - name: Setup DNS
   ansible.builtin.include_tasks: dns.yaml
@@ -61,7 +59,7 @@
     state: started
     enabled: true
 
-### Helm
+# Установка Helm
 - name: Helm install
   when: helmVersion is defined
   block:
@@ -73,7 +71,7 @@
         creates: /root/linux-amd64
       register: helm
 
-    - name: Move helm in /usr/local/sbin # noqa: no-handler
+    - name: Move helm in /usr/local/sbin
       ansible.builtin.command: mv /root/linux-amd64/helm /usr/local/sbin/helm
       when: helm.changed
       register: move_helm
@@ -87,6 +85,8 @@
       ignore_errors: true
       changed_when: helm_diff.rc != 0
 
+    # Плагин helm-diff для Helm выявляет различия между текущим состоянием релиза и его новой конфигурацией.
+    # Это помогает предварительно увидеть, какие изменения произойдут в кластере перед развёртыванием, и безопасно обновлять данные
     - name: "Helm, install plugin helm-diff"
       ansible.builtin.command: /usr/local/sbin/helm plugin install https://github.com/databus23/helm-diff
       when: helm_diff.rc != 0

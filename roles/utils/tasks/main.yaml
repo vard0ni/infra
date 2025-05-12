@@ -100,7 +100,7 @@
       register: kubectl_apply_mlb
       changed_when: kubectl_apply_mlb.rc != 0
 
-### Cert-manager
+# Установка чарта Cert-manager
 - name: Install cert-manager
   when: certManagerEnable
   block:
@@ -120,7 +120,7 @@
           crds:
             enabled: true
             keep: false
-
+    # CA
     - name: Add Issuer manifests
       ansible.builtin.copy:
         src: certs.yaml

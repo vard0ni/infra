@@ -106,11 +106,6 @@
       ansible.builtin.command: bash /root/clear_fw.sh
       ignore_errors: true
 
-    # - name: Remove clear fw script
-    #   ansible.builtin.file:
-    #     state: absent
-    #     path: /root/clear_fw.sh
-
     - name: Delete k8s utils manifests
       ansible.builtin.file:
         path: /etc/kubernetes/utils

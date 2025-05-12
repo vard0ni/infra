@@ -1,4 +1,5 @@
 #/bin/bash
+## Очистка firewall
 
 # Очистка всех правил в таблицах iptables
 iptables -F
