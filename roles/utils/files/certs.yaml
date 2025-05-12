@@ -1,4 +1,6 @@
 ---
+# Создание самоподписанного издателя сертификатов
+# Issuer используется для создания корневого сертификата (CA), который будет служить основой для всех последующих сертификатов в кластере.
 apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
@@ -7,7 +9,7 @@ metadata:
 spec:
   selfSigned: {}
 ---
-# Самоподписанный сертификат CA
+# Самоподписанный корневой сертификат CA, будет использоваться для подписи других сертификатов в кластере
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
@@ -18,28 +20,33 @@ spec:
   duration: 87600h # 10y
   subject:
     organizations:
-      - "Zakhar's dev"
+      - "Gapeev dev"
     organizationalUnits:
       - "Home lab"
     localities:
       - "Moscow"
     countries:
       - "RU"
-  commonName: "Zakhar home CA"
+  commonName: "Gapeev CA"
+  # Имя секрета Kubernetes, в котором будут храниться ключи и сертификаты
   secretName: dev-ca
+  # Настройки для генерации закрытого ключа
   privateKey:
     algorithm: RSA
     encoding: PKCS8
     size: 4096
+  # Ссылка на издателя (Issuer), который будет использоваться для подписи этого сертификата
   issuerRef:
     name: dev-ca-ss
     kind: Issuer
     group: cert-manager.io
 ---
+# Создание глобального издателя сертификатов, работает на уровне всего кластера, а не только в одном namespace
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
   name: dev-ca-issuer
 spec:
+  # Указывает, что этот издатель будет использовать корневой сертификат CA из секрета dev-ca, который был создан ранее
   ca:
     secretName: dev-ca
