@@ -1,3 +1,4 @@
+# не оставлять crd после удаления helm чарта argocd
 crds:
   keep: false
 
@@ -22,6 +23,8 @@ configs:
   params:
     server.insecure: true
 
+  
+
   repositories:
     gapeev-repo:
       url: https://github.com/vard0ni/infra
@@ -36,6 +39,7 @@ redis:
 server:
   name: server
   replicas: {{ argoCDServerReplicaCount }}
+  # подписываем сертификаты при помощи cert-manager
   certificate:
     enabled: true
     domain: "{{ argoCDURL }}"
@@ -54,6 +58,7 @@ server:
       - server auth
       - client auth
 
+  # доступ к argoCD через ingress
   ingress:
     enabled: true
     controller: generic
@@ -66,3 +71,14 @@ server:
       - /
     pathType: Prefix
     tls: true
+
+# чтобы не было проблем с https
+repoServer:
+  volumes:
+  - name: dev-ca-certs
+    secret:
+      secretName: dev-ca-certs
+  volumeMounts:
+  - mountPath: /etc/ssl/certs/dev-ca.pem
+    name: dev-ca-certs
+    subPath: dev-ca.pem
