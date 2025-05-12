@@ -1,10 +1,13 @@
 ---
+# ServiceAccount используется для управления правами доступа к API Kubernetes для пода, который будет выполнять роль NFS-провижинера
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: nfs-client-provisioner
   namespace: kube-system
 ---
+# Определяется ClusterRole , который предоставляет права доступа к различным ресурсам Kubernetes
+# Эти права нужны для работы NFS-провижинера, чтобы он мог динамически создавать и управлять томами
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
@@ -23,6 +26,7 @@ rules:
     resources: ["events"]
     verbs: ["create", "update", "patch"]
 ---
+# Привязывает ClusterRole (nfs-client-provisioner-runner) к ServiceAccount (nfs-client-provisioner)
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
@@ -36,6 +40,8 @@ roleRef:
   name: nfs-client-provisioner-runner
   apiGroup: rbac.authorization.k8s.io
 ---
+# Определяется Role, которая предоставляет права доступа к ресурсам endpoints в пространстве имен kube-system
+# Эти права нужны для реализации механизма "лидера" (leader election), чтобы обеспечить корректную работу нескольких экземпляров провижинера (если они запущены)
 kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
@@ -46,6 +52,7 @@ rules:
     resources: ["endpoints"]
     verbs: ["get", "list", "watch", "create", "update", "patch"]
 ---
+# Привязывает Role (leader-locking-nfs-client-provisioner) к ServiceAccount (nfs-client-provisioner).
 kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
@@ -59,13 +66,16 @@ roleRef:
   name: leader-locking-nfs-client-provisioner
   apiGroup: rbac.authorization.k8s.io
 ---
+# Provisioner : Указывает, что этот StorageClass будет использовать NFS-провижинер (kryukov.local/nfs).
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
   name: managed-nfs-storage
-provisioner: kryukov.local/nfs
+provisioner: gapeev.local/nfs
 parameters:
+  # При удалении PVC соответствующий PV также будет удален.
   onDelete: delete
+  # При удалении тома данные на NFS не будут архивироваться (будут удалены).
   archiveOnDelete: "false"
 ---
 apiVersion: apps/v1
@@ -99,7 +109,7 @@ spec:
               mountPath: /persistentvolumes
           env:
             - name: PROVISIONER_NAME
-              value: kryukov.local/nfs
+              value: gapeev.local/nfs
             - name: NFS_SERVER
               value: "{{ nfsServerHost }}"
             - name: NFS_PATH
