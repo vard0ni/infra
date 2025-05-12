@@ -15,12 +15,12 @@
   roles:
     - prepare-hosts
 
-- name: Install HA on control nodes
-  hosts: "k8s_masters"
+# - name: Install HA on control nodes
+#   hosts: "k8s_masters"
 
-  roles:
-    - role: ha
-      when: ha_cluster_virtual_ip is defined and ha_cluster_virtual_ip != ""
+#   roles:
+#     - role: ha
+#       when: ha_cluster_virtual_ip is defined and ha_cluster_virtual_ip != ""
 
 - name: Install 1-st control node
   hosts: "k8s_masters[0]"
@@ -28,11 +28,11 @@
   roles:
     - role: master
 
-- name: Install another control nodes
-  hosts: "k8s_masters"
+# - name: Install another control nodes
+#   hosts: "k8s_masters"
 
-  roles:
-    - role: second_controls
+#   roles:
+#     - role: second_controls
 
 - name: Install worker nodes
   hosts: "k8s_masters[0],k8s_workers"
