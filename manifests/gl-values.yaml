@@ -22,6 +22,8 @@ gitlab-runner:
 global:
   minio:
     enabled: false
+  registry:
+    enabled: false
   # Включаем Community Edition
   edition: ce
 
@@ -133,7 +135,7 @@ gitlab:
           key: config
   gitaly:
     persistence:
-      size: 20Gi
+      size: 30Gi
   webservice:
     ingress:
       annotations:
