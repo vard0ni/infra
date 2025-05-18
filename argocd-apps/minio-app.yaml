@@ -25,7 +25,7 @@ spec:
           drivesPerNode: 4
         persistence:
           enabled: true
-          size: 4Gi
+          size: 3Gi
         volumePermissions:
           enabled: true
         ingress:
