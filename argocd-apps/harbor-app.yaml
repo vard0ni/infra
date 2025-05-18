@@ -50,7 +50,7 @@ spec:
             registry:
               accessModes:
                 - ReadWriteOnce
-              size: 15Gi
+              size: 10Gi
             jobservice:
               accessModes:
                 - ReadWriteOnce
