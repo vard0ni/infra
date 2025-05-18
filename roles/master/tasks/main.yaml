@@ -38,10 +38,6 @@
       when: enableBPF is not defined
       ansible.builtin.include_tasks: calico.yaml
 
-    - name: Install Calico with BPF
-      when: enableBPF is defined
-      ansible.builtin.include_tasks: calico-bpf.yaml
-
     # calicoctl — утилита командной строки для управления Calico. Необходима для настройки сети и политики безопасности в K8s
     # + диагностика/мониторинг
     - name: Install Calicoctl
