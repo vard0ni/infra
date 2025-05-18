@@ -10,7 +10,7 @@ spec:
   source:
     repoURL: 'registry-1.docker.io/bitnamicharts'  # OCI-источник!
     chart: redis
-    targetRevision: 21.0.2  # Проверьте актуальную версию на ArtifactHub
+    targetRevision: 20.0.5 
     helm:
       parameters:
         - name: global.redis.password
@@ -19,6 +19,11 @@ spec:
           value: 'true'
         - name: replica.replicaCount
           value: '1'
+        - name: master.persistence.enabled
+          value: 'true'
+        - name: master.config.appendonly
+          value: 'no'
+          
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: redis
