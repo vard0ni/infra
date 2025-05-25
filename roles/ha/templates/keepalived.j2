@@ -1,27 +1,31 @@
+#  Скрипт проверки состояния HAProxy
 vrrp_script chk_haproxy {
-  script "killall -0 haproxy" # check the haproxy process
-  interval 2                  # every 2 seconds
-  weight 2                    # add 2 points if OK
+  script "killall -0 haproxy"   # Проверяет, запущен ли процесс haproxy 
+  interval 2                    # интеграл проверки 2 сек
+  weight 2                      # Если проверка успешна, приоритет текущего узла увеличивается на 2 балла. Это помогает определить, какой узел должен стать активным владельцем VIP
 }
 
+# Настройка VRRP-экземпляра - устройство, которое объединяется в виртуальный маршрутизатор для обеспечения высокой доступности. VRRP - Virtual Router Redundancy Protocol
 vrrp_instance VI_1 {
-  interface {{ ansible_facts.default_ipv4.interface }} # interface to monitor
-{% if inventory_hostname == groups['k8s_masters'][0] %}
-  state MASTER                # MASTER on master, BACKUP on slaves
+  interface {{ ansible_facts.default_ipv4.interface }} # Указывает сетевой интерфейс, который будет использоваться для мониторинга и управления VIP
+{% if inventory_hostname == groups['k8s_masters'][0] %}   
+  state MASTER                # # Первый узел в группе k8s_masters становится MASTER (основной узел).
 {% else %}
-  state BACKUP                # MASTER on master, BACKUP on slaves
+  state BACKUP                # Все остальные узлы становятся BACKUP (резервные узлы).
 {% endif %}
   virtual_router_id 51
 {% if inventory_hostname == groups['k8s_masters'][0] %}
-  priority 101                # 101 on master, 100 on slaves
+  priority 101                # Узел с ролью MASTER имеет приоритет 101
 {% else %}
-  priority 100                # 101 on master, 100 on slaves
+  priority 100                # Резервные узлы имеют приоритет 100
 {% endif %}
 
+  # Определяет виртуальный IP-адрес (VIP), который будет использоваться для доступа к Kubernetes API
   virtual_ipaddress {
     {{ ha_cluster_virtual_ip }}/24          # virtual ip address
   }
 
+  # Связывает скрипт проверки состояния HAProxy (chk_haproxy) с VRRP-экземпляром. Если HAProxy перестает работать, приоритет узла снижается, и VIP перемещается на другой узел.
   track_script {
     chk_haproxy
   }

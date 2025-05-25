@@ -1,27 +1,26 @@
 global
-    chroot      /var/lib/haproxy
-    pidfile     /var/run/haproxy.pid
-    maxconn     4000
-    user        haproxy
+    chroot      /var/lib/haproxy            # Ограничивает рабочую директорию HAProxy для повышения безопасности
+    pidfile     /var/run/haproxy.pid        # путь к файлу PID
+    maxconn     4000                        # максимальное количество одновременных подключений
+    user        haproxy                     # Запускает HAProxy от имени пользователя и группы haprox
     group       haproxy
-    daemon
+    daemon                                  # Запускает HAProxy в фоновом режиме
 
 defaults
-    log     global
-    mode    tcp
-    retries 2
-    timeout client 30m
-    timeout connect 4s
-    timeout server 30m
-    timeout check 5s
+    log     global                          # Использует глобальные настройки логирования
+    mode    tcp                             # Режим работы — TCP
+    retries 2                               # Кол-во попыток повторного подключения к серверу в случае сбоя
+    timeout client 30m                      # Таймаут для клиентских соединений
+    timeout connect 4s                      # Таймаут на установку соединения с сервером
+    timeout server 30m                      # Таймаут для соединений с сервером
+    timeout check 5s                        # Таймаут для проверки доступности сервера
 
+# HAProxy слушает входящие запросы на IP-адрес
 frontend main
     bind {{ ha_cluster_virtual_ip }}:{{ ha_cluster_virtual_port }}
-    default_backend             app
+    default_backend             app         # Все входящие запросы направляются в бэкенд с именем app
 
-#---------------------------------------------------------------------
-# round robin balancing between the various backends
-#---------------------------------------------------------------------
+# Задает алгоритм балансировки нагрузки — "round-robin" (по очереди между серверами)
 backend app
     balance     roundrobin
 
@@ -31,9 +30,9 @@ backend app
 
 
 listen stats # Define a listen section called "stats"
-    bind *:9000 # Listen on localhost:9000
-    mode http
-    stats enable  # Enable stats page
-    stats hide-version  # Hide HAProxy version
-    stats realm Haproxy\ Statistics  # Title text for popup window
-    stats uri /haproxy_stats  # Stats URI
+    bind *:9000                         # Открывает доступ к статистике HAProxy на порту 9000
+    mode http                           # Режим работы — HTTP
+    stats enable                        # Включает страницу статистики
+    stats hide-version                  # Скрывает версию HAProxy на странице статистики
+    stats realm Haproxy\ Statistics     # Заголовок для диалогового окна аутентификации
+    stats uri /haproxy_stats            # URL для доступа к статистике
