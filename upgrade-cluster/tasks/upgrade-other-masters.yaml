@@ -19,15 +19,13 @@
 
 # Удалим репозитории
 - name: Remove repository kubernetes
-  when: ansible_facts['os_family'] == "RedHat"
-  yum_repository:
+  ansible.builtin.apt:
     name: kubernetes
     state: absent
 
 # Добавим репозитории
 - name: Add repo kubernetes
-  when: ansible_facts['os_family'] == "RedHat"
-  yum_repository:
+  ansible.builtin.apt_repository:
     name: kubernetes
     description: "Base programs for k8s, version: v{{ kube_version[:4] }}"
     baseurl: "https://pkgs.k8s.io/core:/stable:/v{{ kube_version[:4] }}/rpm/"
@@ -35,14 +33,13 @@
     gpgkey: 
       - "https://pkgs.k8s.io/core:/stable:/v{{ kube_version[:4] }}/rpm/repodata/repomd.xml.key"
 
-- name: Install packages dnf
-  dnf:
+- name: Install packages
+  ansible.builtin.apt:
     name:
       - kubectl
       - kubelet
       - kubeadm
     state: latest
-  when: ansible_facts['os_family'] == "RedHat"
 
 - name: Drain node
   shell: 
